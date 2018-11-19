@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 import matplotlib.pyplot as plt
-# some change
 
 class tTest:
    
@@ -40,7 +39,9 @@ class tTest:
         if categories_order == None:
              categories_order = set(df[xVar])
         
+        outliers = {}
         dict_stats = {}
+        df_rm_outliers = pd.DataFrame()
         for e in categories_order:
            temp_df = df[df[xVar] == e]
            H1, H3 = temp_df[yVar].quantile(q=0.25),\
@@ -52,21 +53,25 @@ class tTest:
            std = temp_df[yVar].std()
            sem = temp_df[yVar].sem()
            
-           outliers_df = temp_df[(temp_df[yVar] < H1-2*step) | 
-                                   (temp_df[yVar] > H3+2*step)]
-           outliers_number = len(outliers_df[yVar])
+           outliers[e] = list(temp_df[yVar][(temp_df[yVar] < H1-2*step) | 
+                                   (temp_df[yVar] > H3+2*step)])
+           outliers_number = len(outliers[e])
+           
+           df_rm_outliers = df_rm_outliers.append(temp_df[(temp_df[yVar] > H1-2*step) & 
+                                         (temp_df[yVar] < H3+2*step)])
            
            temp_dict = {'sample_number': sample_number,'mean': mean,'std': std,
                         'sem': sem, 'outliers': outliers_number}
            dict_stats[e] = temp_dict
         
-        self.outliers = outliers_df # for removing outliers (outliers())
+        self.outliers = outliers # show outliers
         self.stats = dict_stats # for creating bar graph (bar_graph())
+        self.df_rm_outliers = df_rm_outliers
         
         # exporting results
         df_stats = pd.DataFrame.from_dict(dict_stats, orient = 'index')
         df_stats_ordered = df_stats.reindex(categories_order)
-        file_name = self.title+'_descr_stats.csv'
+        file_name = self.title+'_'+yVar+'_descr_stats.csv'
         df_stats_ordered.to_csv(file_name)
         
         # plotting histogram
@@ -91,7 +96,7 @@ class tTest:
         tTest_stats_dict = {'t_statistics':tstat,'df':df,'p_value':pvalue}
         tTest_stats = pd.DataFrame.from_dict(tTest_stats_dict, 
                                              orient = 'index')
-        file_name = self.title+'tTest_stats.csv'
+        file_name = self.title+'_'+yVar+'_tTest_stats.csv'
         tTest_stats.to_csv(file_name)
         
         return tTest_stats
@@ -133,7 +138,7 @@ class tTest:
             cap.set(linewidth=2)              
         fig.show()
         # fig save
-        fig_name = self.title + '_boxplot_graph.tiff'
+        fig_name = self.title+'_'+yVar + '_boxplot_graph.tiff'
         fig.savefig(fig_name, dpi = 300)
         
         # scatter and bar graph (mean,sem)   
@@ -168,8 +173,8 @@ class tTest:
             ax.scatter(position_scatter[i], y_axis[i],c = 'k', alpha = 0.5, 
                        zorder = 2, label = None)
         # axis formatting
-        y_max = max(df[yVar])
-        ax.set_yticks(np.arange(0,y_max+(y_max/4),y_max/4))
+        #y_max = max(df[yVar])
+        #ax.set_yticks(np.arange(0,y_max+(y_max/4),y_max/4))
         ax.set_xticks(position_bar)
         ax.set_xticklabels(labels)
         ax.tick_params(labelsize=18)
@@ -180,16 +185,9 @@ class tTest:
         fig.show()
         # fig save
         fig.tight_layout()
-        fig_name = self.title + '_bar_graph.tiff'
+        fig_name = self.title+'_'+yVar + '_bar_graph.tiff'
         fig.savefig(fig_name, dpi = 300)
         
-    def outliers(self):
-        
-        """
-        """
-        #self.outliers = outliers_df
-        pass
-    
     def rm_outliers(self):
         
         """ 
@@ -199,11 +197,10 @@ class tTest:
         Outliers defined as  H3*2*step < values < H1*2*step
         H1 and H3 - 1st and 3rd quartiles, step = 1.5*IQR
         IQR (interquantile range) = H3 - H1
+        Run other functions (stas/graphs) again after rm outliers
         """
         
-        pass
-    
-    
+        self.dataframe = self.df_rm_outliers
 
         
     
